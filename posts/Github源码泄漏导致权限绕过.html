@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="某众测项目在 Github 意外发现目标某系统部分源码，通过简单审计发现存在可绕过鉴权并获取敏感信息  源码分析 首先把源码下载下来，打开其中的utils&#x2F;operation_send.py文件。此处通过data&#x2F;base.json文件获取相关参数，完成鉴权并发起测试请求。关键代码如下：  1234567891011121314151617181920#获取并计算signaturedef get">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Github源码泄漏导致权限绕过">
+<meta property="og:url" content="https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html">
+<meta property="og:site_name" content="M1r0ku">
+<meta property="og:description" content="某众测项目在 Github 意外发现目标某系统部分源码，通过简单审计发现存在可绕过鉴权并获取敏感信息  源码分析 首先把源码下载下来，打开其中的utils&#x2F;operation_send.py文件。此处通过data&#x2F;base.json文件获取相关参数，完成鉴权并发起测试请求。关键代码如下：  1234567891011121314151617181920#获取并计算signaturedef get">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-0.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-1.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-2.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-3.png">
+<meta property="article:published_time" content="2022-12-20T03:00:00.000Z">
+<meta property="article:modified_time" content="2023-02-18T17:24:08.364Z">
+<meta property="article:author" content="M1r0ku">
+<meta property="article:tag" content="Case">
+<meta property="article:tag" content="Github">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-0.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Github源码泄漏导致权限绕过</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+      <link rel="alternate" href="/true" title="M1r0ku" type="application/atom+xml" />
+    
+	<!-- mathjax -->
+	
+
+  <!-- FancyBox -->
+  
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css" />
+  
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/lists/">Lists</a></li><!--
+     --><!--
+       --><li><a href="/links/">Links</a></li><!--
+     --><!--
+       --><li><a href="/search/">Search</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="Previous post" href="/posts/actuator-heapdump-%E5%A0%86%E8%BD%AC%E5%82%A8%E6%96%87%E4%BB%B6%E6%B3%84%E9%9C%B2.html"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&text=Github源码泄漏导致权限绕过"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&is_video=false&description=Github源码泄漏导致权限绕过"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Github源码泄漏导致权限绕过&body=Check out this article: https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&name=Github源码泄漏导致权限绕过&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&t=Github源码泄漏导致权限绕过"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">源码分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="toc-number">2.</span> <span class="toc-text">漏洞利用</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Github源码泄漏导致权限绕过
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">M1r0ku</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-12-20T03:00:00.000Z" itemprop="datePublished">2022-12-20</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/Pentest/">Pentest</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link-link" href="/tags/Case/" rel="tag">Case</a>, <a class="tag-link-link" href="/tags/Github/" rel="tag">Github</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <blockquote>
+<p>某众测项目在 Github 意外发现目标某系统部分源码，通过简单审计发现存在可绕过鉴权并获取敏感信息</p>
+</blockquote>
+<h2 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h2><ul>
+<li>首先把源码下载下来，打开其中的<code>utils/operation_send.py</code>文件。此处通过<code>data/base.json</code>文件获取相关参数，完成鉴权并发起测试请求。关键代码如下：</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#获取并计算signature</span></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">get_signature</span>(<span class="params">self</span>):</span><br><span class="line">    params = self.__params.items()</span><br><span class="line">    params = <span class="built_in">sorted</span>(params,key=<span class="keyword">lambda</span> x:x[<span class="number">0</span>].lower())</span><br><span class="line">    <span class="comment">#生成signature</span></span><br><span class="line">    signature = base64.encodebytes(</span><br><span class="line">        hmac.new(self.__secret_key.encode(encoding=<span class="string">&#x27;utf-8&#x27;</span>),</span><br><span class="line">                 urlencode(params).lower().replace(<span class="string">&#x27;+&#x27;</span>,<span class="string">&#x27;%20&#x27;</span>).replace(<span class="string">&#x27;*&#x27;</span>,<span class="string">&#x27;%3A&#x27;</span>).replace(<span class="string">&quot;%7E&quot;</span>,<span class="string">&#x27;~&#x27;</span>).encode(encoding=<span class="string">&#x27;utf-8&#x27;</span>),</span><br><span class="line">                 hashlib.sha1).digest()</span><br><span class="line">    ).strip()</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">str</span>(signature,encoding=<span class="string">&#x27;utf-8&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># ......</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> __name__ == <span class="string">&#x27;__main__&#x27;</span>:</span><br><span class="line">    test = OperationJsonUtil(<span class="string">&quot;base&quot;</span>)</span><br><span class="line">    auth = OperationAuthUtil()</span><br><span class="line">    auth.set_params(test.get_params(<span class="string">&quot;index_list&quot;</span>))</span><br><span class="line"></span><br><span class="line"><span class="comment"># ......</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>这里主要调用<code>get_signature()</code>函数完成鉴权，而下面的<code>auth.set_params(test.get_params(&quot;xxx&quot;))</code>则指定要执行的<code>Action</code>，对应右侧<code>data/base.json</code>文件中的字典名。如这里输入<code>index_list</code>即表明调用<code>Action=ListLogIndex</code></li>
+</ul>
+<p><a data-fancybox="gallery" data-src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-0.png" data-caption="Github源码泄漏导致权限绕过-0"><img src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-0.png" alt="Github源码泄漏导致权限绕过-0"></a></p>
+<h2 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h2><ul>
+<li>开启BurpSuite，监听<code>8080</code>端口</li>
+<li>打开<code>utils/operation_send.py</code>文件，修改下面代码：</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># from utils.operation_json import OperationJsonUtil</span></span><br><span class="line"><span class="keyword">from</span> operation_json <span class="keyword">import</span> OperationJsonUtil</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>然后添加2行代码，把流量转发到 BurpSuite</li>
+</ul>
+<p><a data-fancybox="gallery" data-src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-1.png" data-caption="Github源码泄漏导致权限绕过-1"><img src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-1.png" alt="Github源码泄漏导致权限绕过-1"></a></p>
+<ul>
+<li>运行该脚本，可以在BurpSuite看到响应：</li>
+</ul>
+<p><a data-fancybox="gallery" data-src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-2.png" data-caption="Github源码泄漏导致权限绕过-2"><img src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-2.png" alt="Github源码泄漏导致权限绕过-2"></a></p>
+<ul>
+<li>将<code>main</code>函数中下面这行修改为<code>project_list</code>，即可调用<code>ListLogProject</code>这个功能</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># auth.set_params(test.get_params(&quot;index_list&quot;))</span></span><br><span class="line">auth.set_params(test.get_params(<span class="string">&quot;project_list&quot;</span>))</span><br></pre></td></tr></table></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-3.png" data-caption="Github源码泄漏导致权限绕过-3"><img src="/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-3.png" alt="Github源码泄漏导致权限绕过-3"></a></p>
+<ul>
+<li>还有<code>CreateLogIndex/DeleteLogIndex/CreateProject/DeleteLogProject</code>等可增加或删除的功能（参考<code>data/base.json</code>文件），利用方式相同，但具有一定风险，因此没有进行测试。</li>
+</ul>
+
+  </div>
+</article>
+
+
+    <div class="blog-post-comments">
+        <div id="utterances_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/lists/">Lists</a></li>
+         
+          <li><a href="/links/">Links</a></li>
+         
+          <li><a href="/search/">Search</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90"><span class="toc-number">1.</span> <span class="toc-text">源码分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="toc-number">2.</span> <span class="toc-text">漏洞利用</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&text=Github源码泄漏导致权限绕过"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&is_video=false&description=Github源码泄漏导致权限绕过"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Github源码泄漏导致权限绕过&body=Check out this article: https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&title=Github源码泄漏导致权限绕过"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&name=Github源码泄漏导致权限绕过&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html&t=Github源码泄漏导致权限绕过"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2017-2023
+    M1r0ku
+  </div>
+  <div class="footer-right">
+    <nav>
+    <!--
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+       
+          <li><a href="/lists/">Lists</a></li>
+       
+          <li><a href="/links/">Links</a></li>
+       
+          <li><a href="/search/">Search</a></li>
+       
+      </ul>
+    -->
+      
+    <!-- 不蒜子统计 -->
+      <ul>
+        
+        <span id="busuanzi_container_site_pv">
+          <i class="fa fa-eye"></i> <span id="busuanzi_value_site_pv"></span>
+        </span>
+        <span class="post-meta-divider">|</span>
+        <span id="busuanzi_container_site_uv" style='display:none'>
+          <i class="fa fa-user"></i> <span id="busuanzi_value_site_uv"></span> 
+        </span>
+        <script async src="//cdn.bootcdn.net/ajax/libs/busuanzi/2.3.0/bsz.pure.mini.js"></script>
+        
+    </ul>
+    <ul>
+      
+  </ul>
+
+    </nav>
+    
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script> 
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script> 
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+  <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?864b0988af87a8a8f5f115cd29c265de";
+          var s = document.getElementsByTagName("script")[0];
+          s.parentNode.insertBefore(hm, s);
+        })();
+        </script>
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+    <script type="text/javascript">
+      var utterances_repo = 'M1r0ku/m1r0ku.github.io';
+      var utterances_issue_term = 'title';
+      var utterances_label = 'Comment';
+      var utterances_theme = 'photon-dark';
+
+      (function(){
+          var script = document.createElement('script');
+
+          script.src = 'https://utteranc.es/client.js';
+          script.setAttribute('repo', utterances_repo);
+          script.setAttribute('issue-term', 'pathname');
+          script.setAttribute('label', utterances_label);
+          script.setAttribute('theme', utterances_theme);
+          script.setAttribute('crossorigin', 'anonymous');
+          script.async = true;
+          (document.getElementById('utterances_thread')).appendChild(script);
+      }());
+  </script>
+
+
+<!-- FancyBox -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
+
+</body>
+</html>

