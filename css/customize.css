@@ -1,5 +1,8 @@
 /* ./source/css/customize.css */
-
+/*  */
+.content a {
+    color: #42B983;
+}
 /* 引用块样式 */
 article .content blockquote {
     padding: 1em 10px;
@@ -15,7 +18,8 @@ article .content blockquote:before {
 /* 行内代码颜色 */
 code {
     padding: 0 4px;
-    color: #59C1C3;
+    /* color: #59C1C3; */
+    color: #8BE9FD;
     background-color: #2D313B;
     border: none;
 }
