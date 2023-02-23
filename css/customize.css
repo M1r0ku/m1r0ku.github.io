@@ -1,4 +1,25 @@
 /* ./source/css/customize.css */
+
+/* p标签上下间距 */
+p {
+    margin: 0.3rem 0px;
+}
+
+/* 标题样式 */
+body h2, body .h2 {
+    margin-top: 1rem;
+}
+
+body h3 {
+    text-decoration: none; /* 取消下划线 */
+}
+article .content h3::before {
+    content: "## ";
+    color: #2BBC8A;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
 /* 超链接颜色 */
 .content a {
     color: #42B983;
