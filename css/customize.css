@@ -1,3 +1,31 @@
+/* ./source/css/customize.css */
+
+/* 引用块样式 */
+article .content blockquote {
+    padding: 1em 10px;
+    quotes: none;
+    background: #2b2b2b;
+    font-weight: normal;
+    border-left: 3px solid #5db88d;
+}
+article .content blockquote:before {
+    content: none;
+}
+
+/* 行内代码颜色 */
+code {
+    padding: 0 4px;
+    color: #59C1C3;
+    background-color: #2D313B;
+    border: none;
+}
+
+/* 缩小图片视频样式 */
+article .content img, article .content video {
+    max-width: 50%
+}
+
+/* 避免折叠代码颜色被Bootstrap覆盖 */
 pre {
     color: #D1D9E1;
 }

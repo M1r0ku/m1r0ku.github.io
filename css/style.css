@@ -1120,7 +1120,7 @@ article .content img,
 article .content video {
   display: block;
   margin: auto;
-  max-width: 50%;
+  max-width: 100%;
   height: auto;
 }
 article .content .video-container {
@@ -1141,10 +1141,11 @@ article .content .video-container embed {
 }
 article .content blockquote {
   margin: 1rem 10px;
-  padding: 1em 10px;
+  padding: 0.5em 10px;
+  background: inherit;
   color: #ccffb6;
-  background: #2b2b2b;
-  border-left: 3px solid #5db88d;
+  quotes: "\201C" "\201D" "\2018" "\2019";
+  font-weight: bold;
 }
 article .content blockquote p {
   margin: 0;
@@ -1152,6 +1153,7 @@ article .content blockquote p {
 article .content blockquote:before {
   margin-right: 0.25em;
   color: #ccffb6;
+  content: "\201C";
   vertical-align: -0.4em;
   font-size: 2em;
   line-height: 0.1em;
@@ -1590,9 +1592,10 @@ pre code {
   border: none;
 }
 code {
-  padding: 0 4px;
-  color: #59c1c3;
-  background-color: #2d313b;
+  padding: 0 5px;
+  border: 1px dotted #908d8d;
+  border-radius: 2px;
+  -webkit-border-radius: 2px;
 }
 .highlight {
   overflow-x: auto;
