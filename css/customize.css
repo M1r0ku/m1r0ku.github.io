@@ -20,10 +20,18 @@ article .content h3::before {
     font-size: 1rem;
 }
 
-/* 超链接颜色 */
+/* 超链接样式 */
 .content a {
     color: #42B983;
+    background-image: none; /* 取消下划线 */
 }
+.content a:hover {
+    background-image: linear-gradient(transparent, transparent 5px, #c9cacc 5px, #c9cacc);
+    background-position: bottom;
+    background-size: 100% 6px;
+    background-repeat: repeat-x;
+} 
+
 /* 引用块样式 */
 article .content blockquote {
     padding: 1em 10px;

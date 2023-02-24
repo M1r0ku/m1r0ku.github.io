@@ -32,7 +32,8 @@ $(document).ready(function() {
     /**
      * Display the menu on hi-res laptops and desktops.
      */
-    if ($(document).width() >= 1440) {
+    // 修改分辨率参数 1440->1280
+    if ($(document).width() >= 1280) {
       menu.show();
       menuIcon.addClass("active");
     }
@@ -59,6 +60,7 @@ $(document).ready(function() {
         var topDistance = menu.offset().top;
 
         // hide only the navigation links on desktop
+        // 修改高度参数 50->300, 100->300
         if (!nav.is(":visible") && topDistance < 300) {
           nav.show();
         } else if (nav.is(":visible") && topDistance > 300) {
