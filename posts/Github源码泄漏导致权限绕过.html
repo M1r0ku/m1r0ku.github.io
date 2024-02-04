@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang=en>
+<html lang=zh>
 <head><!-- hexo injector head_begin start --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" crossorigin="anonymous"><!-- hexo injector head_begin end -->
     <!-- so meta -->
     <meta charset="utf-8">
@@ -12,7 +12,7 @@
 <meta property="og:url" content="https://www.m1r0ku.com/posts/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87.html">
 <meta property="og:site_name" content="M1r0ku">
 <meta property="og:description" content="某众测项目在 Github 意外发现目标某系统部分源码，通过简单审计发现存在可绕过鉴权并获取敏感信息  源码分析 首先把源码下载下来，打开其中的utils&#x2F;operation_send.py文件。此处通过data&#x2F;base.json文件获取相关参数，完成鉴权并发起测试请求。关键代码如下：    Python  1234567891011121314151617181920#获取并计算signat">
-<meta property="og:locale" content="en_US">
+<meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-0.png">
 <meta property="og:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-1.png">
 <meta property="og:image" content="https://www.m1r0ku.com/assets/Github%E6%BA%90%E7%A0%81%E6%B3%84%E6%BC%8F%E5%AF%BC%E8%87%B4%E6%9D%83%E9%99%90%E7%BB%95%E8%BF%87-2.png">
